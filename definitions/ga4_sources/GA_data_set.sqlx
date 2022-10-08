@@ -1,0 +1,8 @@
+config {
+  type: "declaration",
+  database: "bigquery-public-data",
+  schema: "ga4_obfuscated_sample_ecommerce",
+  name: "events_*",
+  description: "Google Data Analytics Results from Google Merchandise Store"
+}
+`

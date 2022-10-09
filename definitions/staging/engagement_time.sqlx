@@ -1,0 +1,16 @@
+config {
+  type: "table",
+  schema: "staging",
+  description: "Type of user - new or returning",
+}
+
+SELECT
+    user_pseudo_id,
+    select value.int_value 
+    from unnest(event_params) 
+    where key = 'ga_session_id') as session_id
+from
+    ${ref("events_*")}
+group by
+    user_pseudo_id,
+    session_id

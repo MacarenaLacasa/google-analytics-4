@@ -32,6 +32,7 @@ with temp_table as
 SELECT
     parse_date('%Y%m%d',event_date) as event_date,
     m.user_pseudo_id,
+    event_name,
     -- user type
     case
         when (
@@ -116,6 +117,7 @@ ON
 group by
     event_date,
     m.user_pseudo_id,
+    event_name,
     user_type,
     geo.country,
     geo.region,

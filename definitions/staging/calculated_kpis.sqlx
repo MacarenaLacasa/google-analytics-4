@@ -1,0 +1,135 @@
+config {
+  type: "table",
+  schema: "staging",
+  description: "Dimensions and metrics table",
+}
+
+with temp_table as
+(    
+    SELECT
+        user_pseudo_id,
+            (select value.int_value 
+            from unnest(event_params) 
+            where key = 'ga_session_id') 
+        as session_id,
+            (select value.string_value 
+            from unnest(event_params) 
+            where key = 'session_engaged') 
+        as session_engaged,
+            sum (
+                    (select value.int_value 
+                    from unnest(event_params) 
+                    where key = 'engagement_time_msec')
+                /1000) 
+        as engagement_time_seconds
+    from
+        `ga4-project-364715.staging.ga4`
+    group by
+        user_pseudo_id,
+        session_id, 
+        session_engaged 
+)
+SELECT
+    parse_date('%Y%m%d',event_date) as event_date,
+    m.user_pseudo_id,
+    event_name,
+    -- user type
+    case
+        when (
+                select value.int_value
+                from unnest(event_params)
+                where event_name = 'session_start'
+                    and key = 'ga_session_number'
+            ) = 1
+        then 'New User'
+        when (
+                select value.int_value
+                from unnest(event_params)
+                where event_name = 'session_start'
+                    and key = 'ga_session_number'
+            ) > 1
+        then 'Returning User'
+        else null
+    end as user_type,
+    -- count of users
+    count(distinct m.user_pseudo_id) as users,
+    -- count of session
+    count(
+        distinct concat(
+            m.user_pseudo_id,
+            session_id
+        )
+    ) as sessions,
+    -- bounce rate
+    safe_divide(
+        count(
+            distinct concat(
+                m.user_pseudo_id,
+                session_id
+            )
+        ) - 
+        count(
+            distinct case
+                        when session_engaged = '1'
+                        then concat(
+                            m.user_pseudo_id,
+                            session_id
+                        )
+                        else null
+                    end
+        ),
+        count(
+            distinct concat(
+                    m.user_pseudo_id,
+                    session_id
+                )
+        )
+    ) as bounce_rate,
+    -- engagement time
+    safe_divide(
+        sum(engagement_time_seconds),
+        count(
+            distinct case
+                        when session_engaged = '1'
+                        then concat(
+                            m.user_pseudo_id,
+                            session_id
+                        )
+                        else null
+                    end
+        )
+    ) as engagement_time,
+    geo.country,
+    geo.region,
+    geo.city,
+    device.category,
+    device.language,
+    device.web_info.browser,
+    traffic_source.name,
+    traffic_source.medium,
+    traffic_source.source, 
+    ecommerce.purchase_revenue_in_usd
+from
+    ${ref("events_*")} m
+JOIN 
+    temp_table t
+ON 
+    m.user_pseudo_id = t.user_pseudo_id
+group by
+    event_date,
+    m.user_pseudo_id,
+    event_name,
+    user_type,
+    geo.country,
+    geo.region,
+    geo.city,
+    device.category,
+    device.language,
+    device.web_info.browser,
+    traffic_source.name,
+    traffic_source.medium,
+    traffic_source.source, 
+    ecommerce.purchase_revenue_in_usd
+order by 
+    event_date
+

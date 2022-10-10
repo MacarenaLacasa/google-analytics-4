@@ -107,7 +107,8 @@ SELECT
     device.web_info.browser,
     traffic_source.name,
     traffic_source.medium,
-    traffic_source.source
+    traffic_source.source, 
+    ecommerce.purchase_revenue_in_usd
 from
     ${ref("events_*")} m
 JOIN 
@@ -127,7 +128,8 @@ group by
     device.web_info.browser,
     traffic_source.name,
     traffic_source.medium,
-    traffic_source.source
+    traffic_source.source, 
+    ecommerce.purchase_revenue_in_usd
 order by 
     event_date
 

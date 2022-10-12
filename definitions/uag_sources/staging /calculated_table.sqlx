@@ -38,7 +38,7 @@ SELECT
   channelgrouping as default_channel_grouping,
   device.devicecategory as device_category,
   geonetwork.country as country,
-  date(date) as date,
+  PARSE_DATE('%Y%m%d', date) as date,
   concat(trafficsource.source," / ",trafficsource.medium) as source_medium, 
   trafficSource.referralPath as referral_path
 from

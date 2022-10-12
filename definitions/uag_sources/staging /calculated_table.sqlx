@@ -1,0 +1,55 @@
+config {
+  type: "table",
+  schema: "staging",
+  description: "Dimensions and metrics table",
+}
+
+SELECT 
+  --Users
+      count(distinct fullvisitorid) 
+  as users,
+  -- Sessions
+      count(distinct concat
+                        (fullvisitorid, cast(visitstarttime as string))
+            ) 
+  as sessions,
+  -- Bounce Rate 
+      count(distinct case 
+                        when totals.bounces = 1 
+                        then concat(fullvisitorid, cast(visitstarttime as string)) 
+                        else null 
+                        end) 
+        / count(distinct concat
+                            (fullvisitorid, cast(visitstarttime as string))
+                ) 
+  as bounce_rate,
+  -- Average session duration
+      sum(totals.timeonsite) 
+        / count(distinct concat
+                            (fullvisitorid, cast(visitstarttime as string))
+                ) 
+  as average_session_duration,
+  -- User Type 
+      case 
+        when totals.newVisits = 1 then 'New visitor' 
+        else 'Returning visitor' 
+        end 
+  as user_type, 
+  channelgrouping as default_channel_grouping,
+  device.devicecategory as device_category,
+  geonetwork.country as country,
+  date,
+  concat(trafficsource.source," / ",trafficsource.medium) as source_medium, 
+  trafficSource.referralPath as referral_path
+from
+  `bigquery-public-data.google_analytics_sample.ga_sessions_*`
+where
+  totals.visits = 1
+GROUP BY 
+  date,
+  user_type,
+  default_channel_grouping, 
+  device_category, 
+  country, 
+  source_medium, 
+  referral_path
